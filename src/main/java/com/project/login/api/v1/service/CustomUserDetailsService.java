@@ -9,8 +9,6 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import java.security.Principal;
-
 @Service
 @RequiredArgsConstructor
 public class CustomUserDetailsService implements UserDetailsService {
@@ -23,6 +21,6 @@ public class CustomUserDetailsService implements UserDetailsService {
         Users users = usersRepository.findByEmail(username)
                 .orElseThrow(() -> new UsernameNotFoundException("해당하는 유저를 찾을 수 없습니다."));
 
-        return new CustomUserDetails(users);
+        return new CustomUserDetails(users.getIdx(), users.getEmail(), users.getPassword(), users.getRoles());
     }
 }

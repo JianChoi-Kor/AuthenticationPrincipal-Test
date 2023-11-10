@@ -1,5 +1,6 @@
 package com.project.login.api.jwt;
 
+import com.project.login.api.security.CustomUserDetails;
 import com.project.login.api.v1.dto.response.UserResponseDto;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
@@ -10,14 +11,13 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Date;
+import java.util.List;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 public class JwtTokenProvider {
 
     private static final String AUTHORITIES_KEY = "auth";
+    private static final String EMAIL_KEY = "email";
     private static final String BEARER_TYPE = "Bearer";
     private static final long ACCESS_TOKEN_EXPIRE_TIME = 30 * 60 * 1000L;              // 30분
 
@@ -37,8 +38,11 @@ public class JwtTokenProvider {
 
     // 유저 정보를 가지고 AccessToken, RefreshToken 을 생성하는 메서드
     public UserResponseDto.TokenInfo generateToken(Authentication authentication) {
+        //getPrincipal
+        CustomUserDetails customUserDetails = (CustomUserDetails) authentication.getPrincipal();
+
         // 권한 가져오기
-        String authorities = authentication.getAuthorities().stream()
+        String authorities = customUserDetails.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.joining(","));
 
@@ -46,8 +50,9 @@ public class JwtTokenProvider {
         // Access Token 생성
         Date accessTokenExpiresIn = new Date(now + ACCESS_TOKEN_EXPIRE_TIME);
         String accessToken = Jwts.builder()
-                .setSubject(authentication.getName())
+                .setSubject(customUserDetails.getIdx().toString())
                 .claim(AUTHORITIES_KEY, authorities)
+                .claim(EMAIL_KEY, customUserDetails.getEmail())
                 .setExpiration(accessTokenExpiresIn)
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
@@ -68,13 +73,15 @@ public class JwtTokenProvider {
         }
 
         // 클레임에서 권한 정보 가져오기
-        Collection<? extends GrantedAuthority> authorities =
+        List<SimpleGrantedAuthority> authorities =
                 Arrays.stream(claims.get(AUTHORITIES_KEY).toString().split(","))
                 .map(SimpleGrantedAuthority::new)
                 .collect(Collectors.toList());
+        List<String> roles = new ArrayList<>(Arrays.asList(claims.get(AUTHORITIES_KEY, String.class).split(",")));
 
-        // UserDetails 객체를 만들어서 Authentication 리턴
-        UserDetails principal = new User(claims.getSubject(), "", authorities);
+        // CustomUserDetails 객체를 만들어서 Authentication 리턴
+        CustomUserDetails principal = new CustomUserDetails(Long.valueOf(claims.getSubject()), claims.get(EMAIL_KEY, String.class), null, roles);
+
         return new UsernamePasswordAuthenticationToken(principal, "", authorities);
     }
 

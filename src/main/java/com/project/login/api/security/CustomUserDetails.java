@@ -1,39 +1,44 @@
 package com.project.login.api.security;
 
-import com.project.login.api.entity.Users;
 import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.stream.Collectors;
 
 @Getter
 public class CustomUserDetails implements UserDetails {
 
-    private Users users;
+    private Long idx;
+    private String email;
+    private String password;
+    private List<String> roles;
 
-    public CustomUserDetails(Users users) {
-        this.users = users;
+    public CustomUserDetails(Long idx, String email, String password, List<String> roles) {
+        this.idx = idx;
+        this.email = email;
+        this.password = password;
+        this.roles = roles;
     }
-
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return this.users.getRoles().stream()
+        return this.getRoles().stream()
                 .map(SimpleGrantedAuthority::new)
                 .collect(Collectors.toList());
     }
 
     @Override
     public String getPassword() {
-        return users.getPassword();
+        return password;
     }
 
     @Override
     public String getUsername() {
-        return users.getEmail();
+        return email;
     }
 
     @Override

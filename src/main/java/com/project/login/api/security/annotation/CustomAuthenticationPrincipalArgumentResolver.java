@@ -4,6 +4,7 @@ import org.springframework.core.MethodParameter;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.util.ClassUtils;
 import org.springframework.web.bind.support.WebDataBinderFactory;
 import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
@@ -27,10 +28,16 @@ public final class CustomAuthenticationPrincipalArgumentResolver implements Hand
             // Custom Exception 을 통한 예외 처리
         }
         Object principal = authentication.getPrincipal();
+        AuthUser annotation = findMethodAnnotation(AuthUser.class, parameter);
         if (principal == "anonymousUser") {
             // Custom Exception 을 통한 예외 처리
         }
         findMethodAnnotation(AuthUser.class, parameter);
+        if (principal != null && !ClassUtils.isAssignable(parameter.getParameterType(), principal.getClass())) {
+            if (annotation.errorOnInvalidType()) {
+                throw new ClassCastException(principal + " is not assignable to " + parameter.getParameterType());
+            }
+        }
 
         return principal;
     }
